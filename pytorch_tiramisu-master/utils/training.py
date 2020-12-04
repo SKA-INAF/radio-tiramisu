@@ -15,8 +15,8 @@ import torch.nn.functional as F
 import cv2
 from . import imgs as img_utils
 
-RESULTS_PATH = '.results/'
-WEIGHTS_PATH = '.weights/'
+RESULTS_PATH = './results/'
+WEIGHTS_PATH = './weights/'
 
 
 def save_weights(model, epoch, loss, acc): #err):
@@ -202,7 +202,7 @@ def save_predictions(im, targ, pred, epoch, idx):
     np_pred = pred.cpu()
     imgs_to_save.append(np_pred)
     imgs_fname = 'output-'+str(epoch)+'_'+str(idx)+'.png'
-    imgs_fpath = os.path.join("./output", imgs_fname)
+    imgs_fpath = os.path.join(str(RESULTS_PATH), imgs_fname)
     save_image(imgs_to_save, imgs_fpath, 3)
 
 def save_mask(loader):   

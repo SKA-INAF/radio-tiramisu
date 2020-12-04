@@ -134,8 +134,8 @@ def test(model, test_loader, criterion, epoch=1):
         with torch.no_grad():
             #data = Variable(data.cuda(), volatile=True)
             #target = Variable(target.cuda())
-            data = data.cuda()
-            target = target.cuda()
+            data = data.cpu()
+            target = target.cpu()
             output = model(data)
             test_loss += criterion(output, target).item()
             pred = get_predictions(output)
@@ -177,8 +177,8 @@ def predict(model, input_loader, n_batches=1):
 
 def view_sample_predictions(model, loader, epoch, n):
     inputs, targets = next(iter(loader))
-    data = Variable(inputs.cuda(), volatile=True)
-    label = Variable(targets.cuda())
+    data = Variable(inputs.cpu(), volatile=True)
+    label = Variable(targets.cpu())
     output = model(data)
     pred = get_predictions(output)
     batch_size = inputs.size(0)

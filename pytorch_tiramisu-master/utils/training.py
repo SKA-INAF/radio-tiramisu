@@ -15,7 +15,7 @@ import torch.nn.functional as F
 import cv2
 from . import imgs as img_utils
 
-RESULTS_PATH = './results/'
+RESULTS_PATH = './output/'
 WEIGHTS_PATH = './weights/'
 
 

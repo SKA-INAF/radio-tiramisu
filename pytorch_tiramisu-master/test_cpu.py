@@ -24,7 +24,7 @@ import datetime
 
 CAMVID_PATH = Path('./data/')
 RESULTS_PATH = Path('.results/')
-WEIGHTS_PATH = Path('.weights/')
+WEIGHTS_PATH = Path('./weights/')
 RESULTS_PATH.mkdir(exist_ok=True)
 WEIGHTS_PATH.mkdir(exist_ok=True)
 batch_size = 20

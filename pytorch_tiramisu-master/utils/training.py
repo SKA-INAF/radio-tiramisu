@@ -34,7 +34,7 @@ def save_weights(model, epoch, loss, acc): #err):
 
 def load_weights(model, fpath):
     print("loading weights '{}'".format(fpath))
-    weights = torch.load(fpath)
+    weights = torch.load(fpath, map_location=torch.device('cpu'))
     startEpoch = weights['startEpoch']
     model.load_state_dict(weights['state_dict'])
     print("loaded weights (lastEpoch {}, loss {}, error {})"

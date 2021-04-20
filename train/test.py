@@ -23,8 +23,8 @@ import datetime
 
 
 CAMVID_PATH = Path('./data/')
-RESULTS_PATH = Path('./results/')
-WEIGHTS_PATH = Path('./weights/')
+RESULTS_PATH = Path('.results/')
+WEIGHTS_PATH = Path('.weights/')
 RESULTS_PATH.mkdir(exist_ok=True)
 WEIGHTS_PATH.mkdir(exist_ok=True)
 batch_size = 20
@@ -51,18 +51,23 @@ LR = 1e-4
 LR_DECAY = 0.995
 DECAY_EVERY_N_EPOCHS = 1
 N_EPOCHS = 1000
-#torch.cuda.manual_seed(0)
+torch.cuda.manual_seed(0)
 
 
-model = tiramisu.FCDenseNet67(n_classes=4).cpu()
+model = tiramisu.FCDenseNet67(n_classes=4).cuda()
 model.apply(train_utils.weights_init)
 optimizer = torch.optim.RMSprop(model.parameters(), lr=LR, weight_decay=1e-4)
-criterion = nn.NLLLoss(weight=camvid.class_weight.cpu()).cpu()
+criterion = nn.NLLLoss(weight=camvid.class_weight.cuda()).cuda()
 
 
 train_utils.load_weights(model, str(WEIGHTS_PATH)+'/latest.th')
-train_utils.test(model, test_loader, criterion, epoch=1)  
+val_loss, test_metrics = train_utils.test(model, test_loader, criterion, epoch=1)  
+
+print('Val - Loss: {:.4f}'.format(val_loss))
+print('Per class metrics: ')
+for i, class_name in enumerate(test_loader.dataset.classes):
+    print('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tSpecificity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}'.format(class_name, test_metrics[class_name]['accuracy'], test_metrics[class_name]['iou'], test_metrics[class_name]['sensitivity'], test_metrics[class_name]['specificity'], test_metrics[class_name]['precision'], test_metrics[class_name]['dice'], test_metrics[class_name]['object_precision'], test_metrics[class_name]['object_recall']))
 
 
-train_utils.view_sample_predictions(model, test_loader, 0, n=10)
+train_utils.view_sample_predictions(model, test_loader, 0, n=100)
 

@@ -37,9 +37,12 @@ def save_weights(model, epoch, loss, acc): #err):
         }, weights_fpath)
     shutil.copyfile(weights_fpath, WEIGHTS_PATH + 'latest.th')
 
-def load_weights(model, fpath):
+def load_weights(model, fpath, device="cuda"):
     print("loading weights '{}'".format(fpath))
-    weights = torch.load(fpath)
+    if device == 'cpu':
+        weights = torch.load(fpath, map_location=torch.device('cpu'))
+    else:
+        weights = torch.load(fpath)
     startEpoch = weights['startEpoch']
     model.load_state_dict(weights['state_dict'])
     print("loaded weights (lastEpoch {}, loss {}, error {})"

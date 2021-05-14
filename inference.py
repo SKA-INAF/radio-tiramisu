@@ -4,16 +4,16 @@ import PIL, cv2
 import torch
 import json
 import numpy as np
-from attrdict import AttrDict
+import argparse
 import torchvision.transforms as T
 from scipy import ndimage
 
-from models import tiramisu
-from datasets import camvid
-import utils.training as train_utils
-from utils.imgs import view_image
+from train.models import tiramisu
+from train.datasets import camvid
+import train.utils.training as train_utils
+from train.utils.imgs import view_image
 
-WEIGHTS_PATH = Path('./weights/')
+WEIGHTS_PATH = Path('test/weights/')
 
 classes = ['Void', 'Sidelobe', 'Source', 'Galaxy']
 
@@ -46,7 +46,7 @@ def main(args):
 
     model = tiramisu.FCDenseNet67(n_classes=4).cpu()
     model.eval()
-    train_utils.load_weights(model, str(WEIGHTS_PATH)+'/latest.th')
+    train_utils.load_weights(model, str(WEIGHTS_PATH)+'/latest.th', device="cpu")
     with torch.no_grad():
         pred = model(img.unsqueeze(0))
 
@@ -86,7 +86,16 @@ def get_objs(img, pred):
     return objs
 
 if __name__ == '__main__':
-    with open("config.json") as conf:
-        args = AttrDict(json.load(conf))
+    parser = argparse.ArgumentParser()
+
+    # File listing all json files that contain mask information
+    parser.add_argument("-i", "--img_path", help="Path of image file")
+
+    parser.add_argument("-w", "--weights_path", default="test/weights/latest.th", help="Path of saved weights")
+
+    # Optional argument flag which defaults to False
+    parser.add_argument("-o", "--out_path", default="out.json", help="Destination path for extracted data in JSON format")
+
+    args = parser.parse_args()
 
     main(args)

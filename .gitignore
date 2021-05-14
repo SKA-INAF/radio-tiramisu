@@ -2,4 +2,4 @@
 .vscode
 output
 __pycache__
-output.json
+out.json

@@ -1,0 +1,5 @@
+.results
+.vscode
+output
+__pycache__
+output.json

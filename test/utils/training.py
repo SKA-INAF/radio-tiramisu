@@ -4,6 +4,7 @@ import math
 import string
 import random
 import shutil
+from scipy import ndimage
 import numpy as np
 
 import torch
@@ -42,6 +43,11 @@ def load_weights(model, fpath):
     return startEpoch
 
 def get_predictions(output_batch):
+    '''
+    Takes the maximum value along the class dimension.
+    Input is [B,C,H,W] where C is the number of classes and each tensor in this dimension corresponds to 
+    the predicted mask for a single class
+    '''
     bs,c,h,w = output_batch.size()
     tensor = output_batch.data
     values, indices = tensor.cpu().max(1)
@@ -204,6 +210,20 @@ def save_predictions(im, targ, pred, epoch, idx):
     imgs_fname = 'output-'+str(epoch)+'_'+str(idx)+'.png'
     imgs_fpath = os.path.join(str(RESULTS_PATH), imgs_fname)
     save_image(imgs_to_save, imgs_fpath, 3)
+
+
+def get_prediction_coordinates(preds, classes):
+    for pred in preds:
+        for i, class_name in enumerate(classes):
+            
+            current_class = torch.where(pred == i, 1., 0.) # isolates the class of interest
+            pred_objects, nr_pred_objects = ndimage.label(current_class)
+            
+            for pred_idx in range(nr_pred_objects):
+                current_obj_pred = torch.where(torch.from_numpy(pred_objects == pred_idx), 1., 0.)
+    
+    return mask_coords, class_ids,
+
 
 def save_mask(loader):   
     i=0 

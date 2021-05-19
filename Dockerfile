@@ -69,8 +69,8 @@ RUN echo "Make sure flask is installed:"
 RUN python -c "import flask"
 
 # The code to run when container is started:
-COPY ./test/test.py .
-ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "tiramisu", "python", "./test/test.py"]
+COPY ./inference.py .
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "tiramisu", "python", "./inference.py"]
 
 
 # - Clone tiramisu

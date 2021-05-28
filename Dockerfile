@@ -52,25 +52,17 @@ RUN adduser --disabled-password --gecos "" $USER && \
 ENV TIRAMISU_TOP_DIR /opt/Software/Tiramisu
 ENV TIRAMISU_DIR $TIRAMISU_TOP_DIR/install
 
-
-FROM continuumio/miniconda3
-
 WORKDIR $TIRAMISU_TOP_DIR
-
-# Create the environment:
-COPY tiramisu_environment.yml .
-RUN conda env create -f tiramisu_environment.yml
-
-# Make RUN commands use the new environment:
-SHELL ["conda", "run", "-n", "tiramisu", "/bin/bash", "-c"]
 
 # Make sure the environment is activated:
 RUN echo "Make sure flask is installed:"
 RUN python -c "import flask"
 
+
 # The code to run when container is started:
 COPY ./inference.py .
-ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "tiramisu", "python", "./inference.py"]
+RUN pip install -r requirements.txt
+ENTRYPOINT ["python", "./inference.py"]
 
 
 # - Clone tiramisu

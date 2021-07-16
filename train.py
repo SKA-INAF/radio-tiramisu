@@ -104,12 +104,12 @@ def main(args):
         print('Per class metrics: ')
         
         for i, class_name in enumerate(train_loader.dataset.classes):
-            print('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tSpecificity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}'.format(class_name, trn_metrics[class_name]['accuracy'], trn_metrics[class_name]['iou'], trn_metrics[class_name]['recall'], trn_metrics[class_name]['specificity'], trn_metrics[class_name]['precision'], trn_metrics[class_name]['dice'], trn_metrics[class_name]['obj_precision'], trn_metrics[class_name]['obj_recall']))
+            print('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}'.format(class_name, trn_metrics[class_name]['accuracy'], trn_metrics[class_name]['iou'], trn_metrics[class_name]['recall'], trn_metrics[class_name]['precision'], trn_metrics[class_name]['dice'], trn_metrics[class_name]['obj_precision'], trn_metrics[class_name]['obj_recall']))
         output_file.write('Epoch {:d}\nTrain - Loss: {:.4f}'.format(epoch, trn_loss)+ '\n')
         output_file.write('Per class metrics: \n')
 
         for i, class_name in enumerate(train_loader.dataset.classes):
-            output_file.write('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tSpecificity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}\n'.format(class_name, trn_metrics[class_name]['accuracy'], trn_metrics[class_name]['iou'], trn_metrics[class_name]['recall'], trn_metrics[class_name]['specificity'], trn_metrics[class_name]['precision'], trn_metrics[class_name]['dice'], trn_metrics[class_name]['obj_precision'], trn_metrics[class_name]['obj_recall']))
+            output_file.write('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}\n'.format(class_name, trn_metrics[class_name]['accuracy'], trn_metrics[class_name]['iou'], trn_metrics[class_name]['recall'], trn_metrics[class_name]['precision'], trn_metrics[class_name]['dice'], trn_metrics[class_name]['obj_precision'], trn_metrics[class_name]['obj_recall']))
         time_elapsed = time.time() - since  
         print('Train Time {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
         output_file.write('Train Time {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60)+ '\n')
@@ -125,12 +125,12 @@ def main(args):
         print('Val - Loss: {:.4f}'.format(val_loss))
         print('Per class metrics: ')
         for i, class_name in enumerate(test_loader.dataset.classes):
-            print('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tSpecificity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}'.format(class_name, test_metrics[class_name]['accuracy'], test_metrics[class_name]['iou'], test_metrics[class_name]['recall'], test_metrics[class_name]['specificity'], test_metrics[class_name]['precision'], test_metrics[class_name]['dice'], test_metrics[class_name]['obj_precision'], test_metrics[class_name]['obj_recall']))
+            print('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}'.format(class_name, test_metrics[class_name]['accuracy'], test_metrics[class_name]['iou'], test_metrics[class_name]['recall'], test_metrics[class_name]['precision'], test_metrics[class_name]['dice'], test_metrics[class_name]['obj_precision'], test_metrics[class_name]['obj_recall']))
         
         output_file.write('Val - Loss: {:.4f}'.format(val_loss)+ '\n')
         output_file.write('Per class metrics: \n')
         for i, class_name in enumerate(val_loader.dataset.classes):
-            output_file.write('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tSpecificity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}\n'.format(class_name, test_metrics[class_name]['accuracy'], test_metrics[class_name]['iou'], test_metrics[class_name]['recall'], test_metrics[class_name]['specificity'], test_metrics[class_name]['precision'], test_metrics[class_name]['dice'], test_metrics[class_name]['obj_precision'], test_metrics[class_name]['obj_recall']))
+            output_file.write('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}\n'.format(class_name, test_metrics[class_name]['accuracy'], test_metrics[class_name]['iou'], test_metrics[class_name]['recall'], test_metrics[class_name]['precision'], test_metrics[class_name]['dice'], test_metrics[class_name]['obj_precision'], test_metrics[class_name]['obj_recall']))
         time_elapsed = time.time() - since  
         print('Total Time {:.0f}m {:.0f}s\n'.format(time_elapsed // 60, time_elapsed % 60))
         output_file.write('Total Time {:.0f}m {:.0f}s\n'.format(time_elapsed // 60, time_elapsed % 60)+ '\n')

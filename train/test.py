@@ -22,7 +22,7 @@ import utils.training as train_utils
 import datetime
 
 
-CAMVID_PATH = Path('./data/')
+DATA_PATH = Path('./data/')
 RESULTS_PATH = Path('.results/')
 WEIGHTS_PATH = Path('.weights/')
 RESULTS_PATH.mkdir(exist_ok=True)
@@ -32,8 +32,8 @@ batch_size = 20
 normalize = transforms.Normalize(mean=camvid.mean, std=camvid.std)
 
 
-test_dset = camvid.CamVid(
-    CAMVID_PATH, 'test', joint_transform=None,
+test_dset = camvid.AstroDataset(
+    DATA_PATH, 'test', joint_transform=None,
     transform=transforms.Compose([
         transforms.Resize([132, 132]),
         transforms.ToTensor(),

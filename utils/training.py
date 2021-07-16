@@ -173,7 +173,7 @@ def wandb_plot_metrics(metrics, split):
     for class_name in classes[1:]:
         wandb.log({split + '_' + class_name + '/' + metric_name: metrics[class_name][metric_name] for metric_name in metric_names})
 
-def train(model, trn_loader, optimizer, criterion, epoch):
+def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
     model.train()
     trn_loss = 0
 
@@ -185,8 +185,8 @@ def train(model, trn_loader, optimizer, criterion, epoch):
         if idx == 100:
             break
         inputs, targets = data
-        inputs = inputs.cuda()
-        targets = targets.cuda()
+        inputs = inputs.to(device)
+        targets = targets.to(device)
 
         optimizer.zero_grad()
         output = model(inputs)
@@ -230,7 +230,7 @@ def train(model, trn_loader, optimizer, criterion, epoch):
     
     return trn_loss, trn_metrics
 
-def test(model, test_loader, criterion, epoch=1):
+def test(model, test_loader, criterion, epoch=1, device='cuda'):
     model.eval()
     test_loss = 0
     test_metrics = {class_name: {metric_name: 0. for metric_name in metric_names} for class_name in classes}
@@ -238,8 +238,8 @@ def test(model, test_loader, criterion, epoch=1):
 
     for data, target in test_loader:
         with torch.no_grad():
-            data = data.cuda()
-            targets = target.cuda()
+            data = data.to(device)
+            targets = target.to(device)
             output = model(data)
             test_loss += criterion(output, targets).item()
             preds = get_predictions(output)
@@ -284,22 +284,22 @@ def weights_init(m):
         nn.init.kaiming_uniform_(m.weight)
         m.bias.data.zero_()
 
-def predict(model, input_loader, n_batches=1):
+def predict(model, input_loader, n_batches=1, device="cuda"):
     input_loader.batch_size = 1
     predictions = []
     model.eval()
     for data, target in input_loader:
-        data = data.cuda()
-        target = target.cuda()
+        data = data.to(device)
+        target = target.to(device)
         output = model(data)
         pred = get_predictions(output)
         predictions.append([data, target, pred])
     return predictions
 
-def view_sample_predictions(model, loader, epoch, n, writer):
+def view_sample_predictions(model, loader, epoch, n, writer, device='cuda'):
     inputs, targets = next(iter(loader))
-    data = Variable(inputs.cuda(), volatile=True)
-    label = Variable(targets.cuda())
+    data = inputs.to(device)
+    label = targets.to(device)
     output = model(data)
     pred = get_predictions(output)
     batch_size = inputs.size(0)

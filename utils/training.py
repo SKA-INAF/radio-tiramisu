@@ -23,8 +23,8 @@ classes = ['Void', 'Sidelobe', 'Source', 'Galaxy']
 RESULTS_PATH = '.results/'
 WEIGHTS_PATH = '.weights/'
 
-metric_values = ['union', 'tp', 'fp', 'tn', 'fn', 'obj_tp', 'obj_fp', 'obj_fn']
-metrics = ['accuracy', 'iou', 'precision', 'sensitivity', 'specificity', 'dice', 'obj_precision', 'obj_recall']
+metric_values = ['union', 'tp', 'fp', 'fn', 'obj_tp', 'obj_fp', 'obj_fn']
+metric_names = ['accuracy', 'iou', 'precision', 'recall', 'dice', 'obj_precision', 'obj_recall']
 
 
 def save_weights(model, epoch, loss, acc): #err):
@@ -68,70 +68,42 @@ def error(preds, targets):
     return round(float(err),5)
 
 
-def compute_batch_metrics(preds, targets, classes):
+def compute_union(preds, targets, class_name, class_id):
     total_union = {}
-    
-    for i, class_name in enumerate(classes):
-        intersection = torch.where(preds == targets, 1., 0.)  # returns true where the prediction matches the ground truth
-        current_class = torch.where(preds == i, 1.,0.) # isolates the class of interest
-        correct = torch.where(torch.logical_and(intersection, current_class), 1., 0.)
-        gt = torch.where(targets == i, 1., 0.)
-        union = torch.where(torch.logical_or(current_class, gt), 1., 0.)
+    current_class = torch.where(preds == class_id, 1.,0.) # isolates the class of interest
+    gt = torch.where(targets == class_id, 1., 0.)
+    union = torch.where(torch.logical_or(current_class, gt), 1., 0.)
 
-        # batch_accuracies = correct.sum((1,2)) / gt.sum((1,2))
-        # not_nan_mask = batch_accuracies.eq(batch_accuracies)
-        total_union[class_name] = union.sum()
+    total_union = union.sum().item()
     
     return total_union
 
 
-def compute_object_confusion_matrix(preds, targets, classes, threshold=0.5):
-    tp = {class_name: 0. for class_name in classes}
-    fp = {class_name: 0. for class_name in classes}
-    fn = {class_name: 0. for class_name in classes}
+def compute_object_confusion_matrix(preds, targets, class_name, class_id, threshold=0.5):
 
-    
-    #img = preds[0]
-    #labeled, nr_objects = ndimage.label(img)# > threshold) 
+    tp = 0
+    fp = 0
+    fn = 0
+
     for pred, target in zip(preds, targets):
-        for i, class_name in enumerate(classes):
-            
-            #intersection = pred == target # returns true where the prediction matches the ground truth
-            gt = torch.where(target == i, 1., 0.)
-            current_class = torch.where(pred == i, 1., 0.) # isolates the class of interest
-            pred_objects, nr_pred_objects = ndimage.label(current_class)
-            target_objects, nr_target_objects = ndimage.label(gt)
 
-            
-            for pred_idx in range(nr_pred_objects):
-                current_obj_pred = torch.where(torch.from_numpy(pred_objects == pred_idx), 1., 0.)
+        gt = torch.where(target == class_id, 1., 0.)
+        current_class = torch.where(pred == class_id, 1., 0.) # isolates the class of interest
+        pred_objects, nr_pred_objects = ndimage.label(current_class)
+        target_objects, nr_target_objects = ndimage.label(gt)
 
-                obj_iou = get_obj_iou(nr_target_objects, target_objects, current_obj_pred)
-                if nr_target_objects != 0:
-                    if obj_iou >= threshold:
-                        tp[class_name] += 1
-                    else: 
-                        fp[class_name] += 1
+        for pred_idx in range(nr_pred_objects):
+            current_obj_pred = torch.where(torch.from_numpy(pred_objects == pred_idx), 1., 0.)
 
-            if nr_target_objects > nr_pred_objects:
-                fn[class_name] += (nr_target_objects - nr_pred_objects)
+            obj_iou = get_obj_iou(nr_target_objects, target_objects, current_obj_pred)
+            if nr_target_objects != 0:
+                if obj_iou >= threshold:
+                    tp += 1
+                else: 
+                    fp += 1
 
-            # if (tp + fp) != 0:
-            #     image_precision = tp / (tp + fp)
-            # else: 
-            #     image_precision = math.nan
-            # 
-            # if (tp + fn) != 0:
-            #     image_recall = tp / (tp + fn)
-            # else:
-            #     image_recall = math.nan
- 
-            # obj_precision[class_name].append(image_precision)
-            # obj_recall[class_name].append(image_recall)
-
-    #total_tp = {class_name: tp[class_name].sum() for class_name in classes}
-    #total_fp = {class_name: fp[class_name].sum() for class_name in classes}
-    #total_fn = {class_name: fn[class_name].sum() for class_name in classes}
+        if nr_target_objects > nr_pred_objects:
+            fn += (nr_target_objects - nr_pred_objects)
     
     return tp, fp, fn
 
@@ -149,55 +121,69 @@ def get_obj_iou(nr_target_objects, target_objects, current_obj_pred):
     else:
         return 0 
 
-def compute_confusion_matrix(preds, targets, classes):
-    tp = {class_name: 0 for class_name in classes}
-    tn = {class_name: 0 for class_name in classes}
-    fp = {class_name: 0 for class_name in classes}
-    fn = {class_name: 0 for class_name in classes}
+def compute_confusion_matrix(preds, targets, class_name, class_id):
 
-    for i, class_name in enumerate(classes):
-        assert preds.size() == targets.size()
-        intersection = preds == targets # returns true where the prediction matches the ground truth
-        current_class = preds == i # isolates the class of interest
-        gt = targets == i
-        correct = torch.where(torch.logical_and(intersection, current_class), 1., 0.)
+    assert preds.size() == targets.size()
+    # intersection = preds == targets # returns true where the prediction matches the ground truth
+    current_class = preds == class_id # isolates the class of interest
+    gt = targets == class_id
+    # correct = torch.where(torch.logical_and(intersection, current_class), 1., 0.)
 
-        tp[class_name] = gt.mul(current_class).eq(1).sum().item()
-        fp[class_name] = gt.eq(0).long().mul(current_class).eq(1).sum().item()
-        fn[class_name] = current_class.eq(0).long().mul(gt).eq(1).sum().item()
-        tn[class_name] = gt.eq(0).long().mul(current_class).eq(0).sum().item()
+    tp = gt.mul(current_class).eq(1).sum().item()
+    fp = gt.eq(0).long().mul(current_class).eq(1).sum().item()
+    fn = current_class.eq(0).long().mul(gt).eq(1).sum().item()
+    # tn = gt.eq(0).long().mul(current_class).eq(0).sum().item()
 
-    return tp, fp, fn, tn
+    return tp, fp, fn
 
-def compute_final_metrics(metrics):
+def division(x,y):
+    return x / y if y else 0
+
+def compute_final_metrics(metrics, eps=1e-6):
     final_metrics = {}
 
-    final_metrics['accuracy'] = metrics['tp'] / (metrics['tp'] + metrics['fn'])
-    final_metrics['iou'] = metrics['tp'] / metrics['union']
-    final_metrics['sensitivity'] = metrics['tp'] / (metrics['tp'] + metrics['fn'])
-    final_metrics['specificity'] = metrics['tn'] / (metrics['tn'] + metrics['fp'])
-    final_metrics['precision'] = metrics['tp'] / (metrics['tp'] + metrics['fp'])
-    final_metrics['dice'] = metrics['tp'] / (metrics['tp'] + metrics['fp'] + metrics['fn'])
-    final_metrics['obj_precision'] = metrics['obj_tp'] / (metrics['obj_tp'] + metrics['obj_fp'])
-    final_metrics['obj_recall'] = metrics['obj_tp'] / (metrics['obj_tp'] + metrics['obj_fn'])
+    final_metrics['accuracy']       =   division(metrics['tp'], (metrics['tp'] + metrics['fn']))
+    final_metrics['iou']            =   division(metrics['tp'], metrics['union'])
+    final_metrics['recall']    =   division(metrics['tp'], (metrics['tp'] + metrics['fn']))
+    final_metrics['precision']      =   division(metrics['tp'], (metrics['tp'] + metrics['fp']))
+    final_metrics['dice']           =   division(metrics['tp'], (metrics['tp'] + metrics['fp'] + metrics['fn']))
+    final_metrics['obj_precision']  =   division(metrics['obj_tp'], (metrics['obj_tp'] + metrics['obj_fp']))
+    final_metrics['obj_recall']     =   division(metrics['obj_tp'], (metrics['obj_tp'] + metrics['obj_fn']))
 
     return final_metrics
 
+def compute_batch_metrics(union, tp, fp, fn):
+
+    accuracy       =   division(tp, tp + fn)
+    iou            =   division(tp, union)
+    precision      =   division(tp, tp + fp)
+    recall         =   division(tp, tp + fn)
+    dice           =   division(tp, tp + fp + fn)
+
+    return accuracy, iou, precision, recall, dice
+
+def compute_batch_obj_metrics(obj_tp, obj_fp, obj_fn):
+
+    obj_precision  =   division(obj_tp, obj_tp + obj_fp)
+    obj_recall     =   division(obj_tp, obj_tp + obj_fn)
+
+    return obj_precision, obj_recall
+
 def wandb_plot_metrics(metrics, split):
-    for class_name in classes:
-        wandb.log({split + '_' + class_name + '/' + metric_val: metrics[class_name][metric_val] for metric_val in metric_values})
+    for class_name in classes[1:]:
+        wandb.log({split + '_' + class_name + '/' + metric_name: metrics[class_name][metric_name] for metric_name in metric_names})
 
 def train(model, trn_loader, optimizer, criterion, epoch):
     model.train()
     trn_loss = 0
-    # correct = {class_name: 0 for class_name in classes}
-    # gt = {class_name: 0 for class_name in classes}
-    # correct = {class_name: 0 for class_name in classes}
 
-    trn_metrics = {class_name: {metric_val: 0. for metric_val in metric_values} for class_name in classes}
-    tmp_values = {metric_val: {} for metric_val in metric_values}
+    trn_metrics = {class_name: {metric_name: 0. for metric_name in metric_names} for class_name in classes}
+    batch_metrics = {class_name: {metric_name: [] for metric_name in metric_names} for class_name in classes}
 
     for idx, data in enumerate(trn_loader):
+
+        if idx == 100:
+            break
         inputs, targets = data
         inputs = inputs.cuda()
         targets = targets.cuda()
@@ -210,50 +196,80 @@ def train(model, trn_loader, optimizer, criterion, epoch):
 
         trn_loss += loss.data.item()
         preds = get_predictions(output)
-        #trn_error += error(pred, targets.data.cpu())
-        tmp_values['union'] = compute_batch_metrics(preds, targets.data.cpu(), classes) # Type: dict
-        tmp_values['tp'], tmp_values['fp'], tmp_values['fn'], tmp_values['tn'] = compute_confusion_matrix(preds, targets.data.cpu(), trn_loader.dataset.classes)
-        tmp_values['obj_tp'], tmp_values['obj_fp'], tmp_values['obj_fn'] = compute_object_confusion_matrix(preds, targets.data.cpu(), trn_loader.dataset.classes)
-        for i, class_name in enumerate(classes):
-            for metric_val in metric_values:
-                trn_metrics[class_name][metric_val] += tmp_values[metric_val][class_name]
+
+        # Skipping Background class in metric computation (i + 1)
+        for i, class_name in enumerate(classes[1:]): 
+            union = compute_union(preds, targets.data.cpu(), class_name, i + 1) 
+            if union == 0:
+                # There is no object with that class, skipping...
+                continue
+
+            tp, fp, fn = compute_confusion_matrix(preds, targets.data.cpu(), class_name, i + 1)
+            obj_tp, obj_fp, obj_fn = compute_object_confusion_matrix(preds, targets.data.cpu(), class_name, i + 1)
+
+            accuracy, iou, precision, recall, dice = compute_batch_metrics(union, tp, fp, fn)
+            obj_precision, obj_recall = compute_batch_obj_metrics(obj_tp, obj_fp, obj_fn)
+
+            batch_metrics[class_name]['accuracy'].append(accuracy)
+            batch_metrics[class_name]['iou'].append(iou)
+            batch_metrics[class_name]['precision'].append(precision)
+            batch_metrics[class_name]['recall'].append(recall)
+            batch_metrics[class_name]['dice'].append(dice)
+            batch_metrics[class_name]['obj_precision'].append(obj_precision)
+            batch_metrics[class_name]['obj_recall'].append(obj_recall)
+
+            # batch_metrics = {class_name: compute_final_metrics(batch_metrics[class_name]) for class_name in classes}
+            # for metric_val in metric_values:
+            #     trn_metrics[class_name][metric_val] += tmp_values[metric_val][class_name]
 
     trn_loss /= len(trn_loader)
-    #trn_error /= len(trn_loader)
-    trn_metrics = {class_name: compute_final_metrics(trn_metrics[class_name]) for class_name in classes}
+
+    for class_name in classes[1:]:
+        trn_metrics[class_name] = {metric_name: np.mean(batch_metrics[class_name][metric_name]) for metric_name in metric_names}
     wandb_plot_metrics(trn_metrics, 'train')
     
-    #return trn_loss, trn_error
     return trn_loss, trn_metrics
 
 def test(model, test_loader, criterion, epoch=1):
     model.eval()
     test_loss = 0
-    test_metrics = {class_name: {metric_val: 0. for metric_val in metric_values} for class_name in classes}
-    tmp_values = {metric_val: {} for metric_val in metric_values}
+    test_metrics = {class_name: {metric_name: 0. for metric_name in metric_names} for class_name in classes}
+    batch_metrics = {class_name: {metric_name: [] for metric_name in metric_names} for class_name in classes}
+
     for data, target in test_loader:
         with torch.no_grad():
-            #data = Variable(data.cuda(), volatile=True)
-            #target = Variable(target.cuda())
             data = data.cuda()
             targets = target.cuda()
             output = model(data)
             test_loss += criterion(output, targets).item()
             preds = get_predictions(output)
-            #test_error += error(pred, target.data.cpu())
-            #test_acc += compute_accuracy(pred, target.data.cpu(), test_loader.dataset.classes)
+
+            # Skipping Background class in metric computation (i + 1)
+            for i, class_name in enumerate(classes[1:]): 
+                union = compute_union(preds, targets.data.cpu(), class_name, i + 1) 
+                if union == 0:
+                    # There is no object with that class, skipping...
+                    continue
+
+                tp, fp, fn = compute_confusion_matrix(preds, targets.data.cpu(), class_name, i + 1)
+                obj_tp, obj_fp, obj_fn = compute_object_confusion_matrix(preds, targets.data.cpu(), class_name, i + 1)
+
+                accuracy, iou, precision, recall, dice = compute_batch_metrics(union, tp, fp, fn)
+                obj_precision, obj_recall = compute_batch_obj_metrics(obj_tp, obj_fp, obj_fn)
+
+                batch_metrics[class_name]['accuracy'].append(accuracy)
+                batch_metrics[class_name]['iou'].append(iou)
+                batch_metrics[class_name]['precision'].append(precision)
+                batch_metrics[class_name]['recall'].append(recall)
+                batch_metrics[class_name]['dice'].append(dice)
+                batch_metrics[class_name]['obj_precision'].append(obj_precision)
+                batch_metrics[class_name]['obj_recall'].append(obj_recall)
             
-            tmp_values['union'] = compute_batch_metrics(preds, targets.data.cpu(), classes) # Type: dict
-            tmp_values['tp'], tmp_values['fp'], tmp_values['fn'], tmp_values['tn'] = compute_confusion_matrix(preds, targets.data.cpu(), test_loader.dataset.classes)
-            tmp_values['obj_tp'], tmp_values['obj_fp'], tmp_values['obj_fn'] = compute_object_confusion_matrix(preds, targets.data.cpu(), test_loader.dataset.classes)
-            for i, class_name in enumerate(classes):
-                for metric_val in metric_values:
-                    test_metrics[class_name][metric_val] += tmp_values[metric_val][class_name]
     test_loss /= len(test_loader)
-    #test_error /= len(test_loader)
-    test_metrics = {class_name: compute_final_metrics(test_metrics[class_name]) for class_name in classes}
+
+    for class_name in classes[1:]:
+        test_metrics[class_name] = {metric_name: np.mean(batch_metrics[class_name][metric_name]) for metric_name in metric_names}
     wandb_plot_metrics(test_metrics, 'test')
-    #return test_loss, test_acc
     return test_loss, test_metrics
 
 def adjust_learning_rate(lr, decay, optimizer, cur_epoch, n_epochs):
@@ -272,12 +288,12 @@ def predict(model, input_loader, n_batches=1):
     input_loader.batch_size = 1
     predictions = []
     model.eval()
-    for input, target in input_loader:
-        data = Variable(input.cuda(), volatile=True)
-        label = Variable(target.cuda())
+    for data, target in input_loader:
+        data = data.cuda()
+        target = target.cuda()
         output = model(data)
         pred = get_predictions(output)
-        predictions.append([input,target,pred])
+        predictions.append([data, target, pred])
     return predictions
 
 def view_sample_predictions(model, loader, epoch, n, writer):

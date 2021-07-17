@@ -7,4 +7,5 @@ wandb
 runs
 data
 data_reduced
-logs.txt
+log.txt
+output.json

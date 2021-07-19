@@ -1,4 +1,5 @@
 .results
+.weights
 .vscode
 output
 __pycache__
@@ -9,3 +10,4 @@ data
 data_reduced
 log.txt
 output.json
+*.pth

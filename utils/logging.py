@@ -5,8 +5,9 @@ import datetime
 class Logger:
     def __init__(self, out_file, classes, writer):
         self.out_file = out_file
-        self.classes = classes
+        self.classes = classes[1:]
         self.writer = writer
+        self.metric_names = ['accuracy', 'iou', 'precision', 'recall', 'dice', 'obj_precision', 'obj_recall']
         with open(out_file, 'w') as out:
             out.write('Date: ' + str(datetime.datetime.now()) + '\n')
 
@@ -44,3 +45,7 @@ class Logger:
 
         print("Inputs shape: ", inputs_size)
         print("Targets shape: ", targets_size)
+
+    def wandb_plot_metrics(self, metrics, split):
+        for class_name in self.classes[1:]:
+            wandb.log({split + '/' + class_name + '/' + metric_name: metrics[class_name][metric_name] for metric_name in metrics[class_name]})

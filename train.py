@@ -8,7 +8,6 @@ import time
 from models import tiramisu
 from datasets.rg_data import AstroDataLoaders
 import utils.training as train_utils
-import datetime
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
@@ -39,7 +38,7 @@ def main(args):
     WEIGHTS_PATH = Path(args.weights_dir)
     RESULTS_PATH.mkdir(exist_ok=True)
     WEIGHTS_PATH.mkdir(exist_ok=True)
-    batch_size = 1
+    batch_size = args.batch_size
 
     # Data Loading
     data_loader = AstroDataLoaders(DATA_PATH, batch_size)
@@ -66,11 +65,6 @@ def main(args):
     inputs, targets = next(iter(train_loader))
     logger.log_header(n_samples, inputs.shape, targets.shape)
 
-    #utils.imgs.view_image(inputs[0])
-    #utils.imgs.view_annotated(targets[0])
-
-    #train_utils.save_mask(train_loader)
-
     torch.cuda.manual_seed(0)
 
     model = tiramisu.FCDenseNet67(n_classes=4).to(args.device)
@@ -87,6 +81,8 @@ def main(args):
 
         time_elapsed = time.time() - since
         logger.log_metrics('Train', epoch, trn_loss, trn_metrics, time_elapsed)
+        logger.wandb_plot_metrics(trn_metrics, 'train')
+
         
         ### Val ###
         since = time.time()
@@ -94,6 +90,7 @@ def main(args):
 
         time_elapsed = time.time() - since
         logger.log_metrics('Val', epoch, val_loss, val_metrics, time_elapsed)
+        logger.wandb_plot_metrics(val_metrics, 'val')
 
         train_utils.view_sample_predictions(model, val_loader, epoch, n=5, writer=writer)
         

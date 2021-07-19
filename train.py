@@ -48,11 +48,6 @@ def main(args):
 
     # Logging
 
-    # Init WandB logger 
-    wandb.init(project='astro_tiramisu')
-    config = wandb.config
-    config.learning_rate = args.lr
-
     writer = SummaryWriter()
 
     logger = Logger(args.log_file, train_loader.dataset.classes, writer)
@@ -109,8 +104,9 @@ def main(args):
 
         since = time.time()
 
-        logger.log_metrics('Test', epoch, test_loss, test_metrics, )
         time_elapsed = time.time() - since
+        logger.log_metrics('Test', epoch, test_loss, test_metrics, time_elapsed)
+        logger.wandb_plot_metrics(test_metrics, 'test')
 
         train_utils.view_sample_predictions(model, test_loader, 1, 100, None)
 

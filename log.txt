@@ -1,1 +1,8 @@
-Date: 2021-07-16 18:46:50.108686
+Date: 2021-07-19 15:03:24.525321
+Epoch 1
+Test - Loss: 0.1101
+Per class metrics: 
+	 Sidelobe: 	Acc: 0.9472, 	IoU: 0.2969, 	Sensitivity: 0.9472, 	Precision: 0.3019, 	Dice: 0.2969, 	Object Precision: 0.1435, 	Object Recall: 0.6400
+	 Source: 	Acc: 0.5192, 	IoU: 0.4764, 	Sensitivity: 0.5192, 	Precision: 0.8526, 	Dice: 0.4764, 	Object Precision: 0.4487, 	Object Recall: 0.8750
+	 Galaxy: 	Acc: 0.8407, 	IoU: 0.5945, 	Sensitivity: 0.8407, 	Precision: 0.6699, 	Dice: 0.5945, 	Object Precision: 0.4259, 	Object Recall: 0.8846
+Test Time 0m 0s

@@ -8,6 +8,8 @@ class Logger:
         self.classes = classes[1:]
         self.writer = writer
         self.metric_names = ['accuracy', 'iou', 'precision', 'recall', 'dice', 'obj_precision', 'obj_recall']
+
+        wandb.init(project='astro_tiramisu')
         with open(out_file, 'w') as out:
             out.write('Date: ' + str(datetime.datetime.now()) + '\n')
 
@@ -29,9 +31,9 @@ class Logger:
         
         # Metrics
         for i, class_name in enumerate(self.classes):
-            print('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}'.format(class_name, metrics[class_name]['accuracy'], metrics[class_name]['iou'], metrics[class_name]['recall'], metrics[class_name]['precision'], metrics[class_name]['dice'], metrics[class_name]['obj_precision'], metrics[class_name]['obj_recall']))
+            print('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tRecall: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}'.format(class_name, metrics[class_name]['accuracy'], metrics[class_name]['iou'], metrics[class_name]['recall'], metrics[class_name]['precision'], metrics[class_name]['dice'], metrics[class_name]['obj_precision'], metrics[class_name]['obj_recall']))
             with open(self.out_file, 'a') as out:
-                out.write('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}\n'.format(class_name, metrics[class_name]['accuracy'], metrics[class_name]['iou'], metrics[class_name]['recall'], metrics[class_name]['precision'], metrics[class_name]['dice'], metrics[class_name]['obj_precision'], metrics[class_name]['obj_recall']))
+                out.write('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tRecall: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}\n'.format(class_name, metrics[class_name]['accuracy'], metrics[class_name]['iou'], metrics[class_name]['recall'], metrics[class_name]['precision'], metrics[class_name]['dice'], metrics[class_name]['obj_precision'], metrics[class_name]['obj_recall']))
 
         # Time elapsed
         print(f'{split} Time {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')

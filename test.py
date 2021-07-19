@@ -5,60 +5,64 @@
 
 from datasets.rg_data import AstroDataLoaders
 from pathlib import Path
-
+from utils.logging import Logger
 import torch
 import torch.nn as nn
-import torchvision.transforms as transforms
+import time
+from torch.utils.tensorboard import SummaryWriter
 
-import wandb
+import argparse
 from models import tiramisu
-from datasets import camvid
+from datasets import rg_data
 import utils.training as train_utils
 
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument( "--resume", default='latest.pth', type=str, help="Weights path from which start training")
+    parser.add_argument( "--data_dir", default="data_reduced", help="Path of data folder")
+    parser.add_argument( "--weights_dir", default =".weights", help="Weights dir where to save checkpoints")
+    parser.add_argument( "--results_dir", default =".results", help="Weights dir where to store results")
+    parser.add_argument( "--log_file", default ="log.txt", help="Log text file path")
+    parser.add_argument( "--batch_size", default=20)
+    parser.add_argument( "--n_epochs", default=1000)
+    parser.add_argument( "--n_classes", default=4)
+    parser.add_argument( "--device", default="cuda")
 
-DATA_PATH = Path('./data/')
-RESULTS_PATH = Path('.results/')
-WEIGHTS_PATH = Path('./weights/')
-RESULTS_PATH.mkdir(exist_ok=True)
-WEIGHTS_PATH.mkdir(exist_ok=True)
-batch_size = 20
+    return parser
 
-normalize = transforms.Normalize(mean=camvid.mean, std=camvid.std)
+def main(args):
 
-data_loader = AstroDataLoaders()
-test_loader = data_loader.get_test_loader()
-
-LR = 1e-4
-LR_DECAY = 0.995
-DECAY_EVERY_N_EPOCHS = 1
-N_EPOCHS = 1000
-torch.cuda.manual_seed(0)
-
-
-model = tiramisu.FCDenseNet67(n_classes=4).cuda()
-model.apply(train_utils.weights_init)
-optimizer = torch.optim.RMSprop(model.parameters(), lr=LR, weight_decay=1e-4)
-criterion = nn.NLLLoss(weight=camvid.class_weight.cuda()).cuda()
+    DATA_PATH = Path(args.data_dir)
+    RESULTS_PATH = Path(args.results_dir)
+    WEIGHTS_PATH = Path(args.weights_dir)
+    RESULTS_PATH.mkdir(exist_ok=True)
+    WEIGHTS_PATH.mkdir(exist_ok=True)
+    batch_size = args.batch_size
 
 
-train_utils.load_weights(model, str(WEIGHTS_PATH)+'/latest.th')
-val_loss, test_metrics = train_utils.test(model, test_loader, criterion, epoch=1)  
+    data_loader = AstroDataLoaders(DATA_PATH, batch_size)
+    test_loader = data_loader.get_test_loader()
+    if args.device == 'cuda':
+        torch.cuda.manual_seed(0)
 
-print('Val - Loss: {:.4f}'.format(val_loss))
-print('Per class metrics: ')
-for i, class_name in enumerate(test_loader.dataset.classes):
-    print('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tSensitivity: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}'.format(class_name, test_metrics[class_name]['accuracy'], test_metrics[class_name]['iou'], test_metrics[class_name]['recall'], test_metrics[class_name]['precision'], test_metrics[class_name]['dice'], test_metrics[class_name]['object_precision'], test_metrics[class_name]['object_recall']))
+    writer = SummaryWriter()
+    logger = Logger(args.log_file, test_loader.dataset.classes, writer)
+
+    model = tiramisu.FCDenseNet67(n_classes=args.n_classes).to(args.device)
+    criterion = nn.NLLLoss(weight=data_loader.class_weight.cuda()).cuda()
 
 
-train_utils.view_sample_predictions(model, test_loader, 0, n=10)
+    train_utils.load_weights(model, str(WEIGHTS_PATH)+'/' + args.resume)
+    since = time.time()
+    test_loss, test_metrics = train_utils.test(model, test_loader, criterion, epoch=1)  
 
-train_utils.load_weights(model, str(WEIGHTS_PATH)+args.resume)
-test_loss, test_metrics = train_utils.test(model, test_loader, criterion, epoch=1)  
-writer.add_scalar("Loss/test", test_loss, 1)
+    time_elapsed = time.time() - since
+    logger.log_metrics('Test', 1, test_loss, test_metrics, time_elapsed)
+    logger.wandb_plot_metrics(test_metrics, 'test')
+    
+    train_utils.view_sample_predictions(model, test_loader, 1, 100, None)
 
-for class_name in test_loader.dataset.classes:
-    for metric_name in test_metrics[class_name]:
-        wandb.log({f'test_{class_name}/{metric_name}' : test_metrics[class_name][metric_name]})
-        writer.add_scalar(metric_name + "/test_" + class_name, test_metrics[class_name][metric_name], 1)
 
-train_utils.view_sample_predictions(model, test_loader, 1, 100, None)
+if __name__ == '__main__':
+    args = get_args().parse_args()
+    main(args)

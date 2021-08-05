@@ -65,8 +65,9 @@ def compute_confusion_matrix(preds, targets, class_id):
     tp = gt.mul(current_class).eq(1).sum().item()
     fp = gt.eq(0).long().mul(current_class).eq(1).sum().item()
     fn = current_class.eq(0).long().mul(gt).eq(1).sum().item()
+    tn = current_class.eq(0).long().mul(gt).eq(0).sum().item()
 
-    return tp, fp, fn
+    return tp, fp, fn, tn
 
 def division(x,y):
     return x / y if y else 0
@@ -84,9 +85,11 @@ def compute_final_metrics(metrics, eps=1e-6):
 
     return final_metrics
 
-def compute_batch_metrics(union, tp, fp, fn):
+def compute_batch_metrics(union, tp, fp, fn, tn):
 
-    accuracy       =   division(tp, tp + fn)
+    # TODO IoU and Dice are the same metric, remove?
+
+    accuracy       =   division(tp + tn, tp + fp + tn + fn)
     iou            =   division(tp, union)
     precision      =   division(tp, tp + fp)
     recall         =   division(tp, tp + fn)

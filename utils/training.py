@@ -90,10 +90,10 @@ def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
                 # There is no object with that class, skipping...
                 continue
 
-            tp, fp, fn = compute_confusion_matrix(preds, targets.data.cpu(), i + 1)
+            tp, fp, fn, tn = compute_confusion_matrix(preds, targets.data.cpu(), i + 1)
             obj_tp, obj_fp, obj_fn = compute_object_confusion_matrix(preds, targets.data.cpu(), i + 1)
 
-            accuracy, iou, precision, recall, dice = compute_batch_metrics(union, tp, fp, fn)
+            accuracy, iou, precision, recall, dice = compute_batch_metrics(union, tp, fp, fn, tn)
             obj_precision, obj_recall = compute_batch_obj_metrics(obj_tp, obj_fp, obj_fn)
 
             batch_metrics[class_name]['accuracy'].append(accuracy)
@@ -136,10 +136,10 @@ def test(model, test_loader, criterion, epoch=1, device='cuda'):
                     # There is no object with that class, skipping...
                     continue
 
-                tp, fp, fn = compute_confusion_matrix(preds, targets.data.cpu(), i + 1)
+                tp, fp, fn, tn = compute_confusion_matrix(preds, targets.data.cpu(), i + 1)
                 obj_tp, obj_fp, obj_fn = compute_object_confusion_matrix(preds, targets.data.cpu(), i + 1)
 
-                accuracy, iou, precision, recall, dice = compute_batch_metrics(union, tp, fp, fn)
+                accuracy, iou, precision, recall, dice = compute_batch_metrics(union, tp, fp, fn, tn)
                 obj_precision, obj_recall = compute_batch_obj_metrics(obj_tp, obj_fp, obj_fn)
 
                 batch_metrics[class_name]['accuracy'].append(accuracy)

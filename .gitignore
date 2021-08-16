@@ -1,5 +1,13 @@
 .results
+.weights
 .vscode
 output
 __pycache__
 out.json
+wandb
+runs
+data
+data_reduced
+log.txt
+output.json
+*.pth

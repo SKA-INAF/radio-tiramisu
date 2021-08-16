@@ -8,10 +8,10 @@ import argparse
 import torchvision.transforms as T
 from scipy import ndimage
 
-from train.models import tiramisu
-from train.datasets import camvid
-import train.utils.training as train_utils
-from train.utils.imgs import view_image
+from models import tiramisu
+from datasets import camvid
+import utils.training as train_utils
+from utils.imgs import view_image
 
 WEIGHTS_PATH = Path('test/weights/')
 

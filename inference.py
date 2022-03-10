@@ -9,11 +9,10 @@ import torchvision.transforms as T
 from scipy import ndimage
 
 from models import tiramisu
-from datasets import camvid
 import utils.training as train_utils
 from utils.imgs import view_image
 
-WEIGHTS_PATH = Path('test/weights/')
+WEIGHTS_PATH = Path('.weights/')
 
 classes = ['Void', 'Sidelobe', 'Source', 'Galaxy']
 
@@ -31,7 +30,9 @@ class NpEncoder(json.JSONEncoder):
 
 def main(args):
     info = {'image_id': args.img_path.split('\\')[-1].split('.')[0]}
-    normalize = T.Normalize(mean=camvid.mean, std=camvid.std)
+    mean = [0.28535324, 0.28535324, 0.28535324]
+    std = [0.28536762, 0.28536762, 0.28536762]
+    normalize = T.Normalize(mean=mean, std=std)
 
     # TODO Add support for FITS images
 
@@ -46,7 +47,7 @@ def main(args):
 
     model = tiramisu.FCDenseNet67(n_classes=4).cpu()
     model.eval()
-    train_utils.load_weights(model, str(WEIGHTS_PATH)+'/latest.th', device="cpu")
+    train_utils.load_weights(model, str(WEIGHTS_PATH)+'/latest.pth', device="cpu")
     with torch.no_grad():
         pred = model(img.unsqueeze(0))
 

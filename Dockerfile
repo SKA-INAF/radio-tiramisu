@@ -5,6 +5,6 @@ RUN pip3 install torch torchvision torchaudio
 RUN git clone https://github.com/SKA-INAF/Tiramisu.git /Tiramisu
 WORKDIR /Tiramisu
 RUN pip install -r requirements.txt
-RUN unzip /app/archives/test.zip
+RUN unzip archives/test.zip -d .
 ENTRYPOINT [ "python", "inference.py" ]
 CMD [ "-i", "test/sample1_galaxy0001.png" ]

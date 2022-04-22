@@ -138,7 +138,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # File listing all json files that contain mask information
-    parser.add_argument("-i", "--img_path", help="Path of image file")
+    parser.add_argument("-i", "--img_path", required=True, help="Path of image file")
 
     parser.add_argument("-w", "--weights_dir", default="weights", help="Path of saved weights")
 

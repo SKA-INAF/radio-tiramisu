@@ -14,7 +14,7 @@ classes = ['Void', 'Sidelobe', 'Source', 'Galaxy']
 
 
 RESULTS_PATH = '.results/'
-WEIGHTS_PATH = '.weights/'
+WEIGHTS_PATH = 'weights/'
 
 metric_values = ['union', 'tp', 'fp', 'fn', 'obj_tp', 'obj_fp', 'obj_fn']
 metric_names = ['accuracy', 'iou', 'precision', 'recall', 'dice', 'obj_precision', 'obj_recall']

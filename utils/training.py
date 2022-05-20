@@ -154,6 +154,12 @@ def test(model, test_loader, criterion, epoch=1, device='cuda'):
 
     for class_name in classes[1:]:
         test_metrics[class_name] = {metric_name: np.mean(batch_metrics[class_name][metric_name]) for metric_name in metric_names}
+        test_metrics[class_name]['f1-score'] = \
+            (2 * test_metrics[class_name]['precision'] * test_metrics[class_name]['recall']) / \
+                (test_metrics[class_name]['precision'] + test_metrics[class_name]['recall'])
+        test_metrics[class_name]['obj_f1-score'] = \
+            (2 * test_metrics[class_name]['obj_precision'] * test_metrics[class_name]['obj_recall']) / \
+                (test_metrics[class_name]['obj_precision'] + test_metrics[class_name]['obj_recall'])
     return test_loss, test_metrics
 
 def adjust_learning_rate(lr, decay, optimizer, cur_epoch, n_epochs):

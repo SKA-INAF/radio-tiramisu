@@ -31,7 +31,10 @@ class Logger:
         
         # Metrics
         for i, class_name in enumerate(self.classes):
-            print('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tRecall: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}'.format(class_name, metrics[class_name]['accuracy'], metrics[class_name]['iou'], metrics[class_name]['recall'], metrics[class_name]['precision'], metrics[class_name]['dice'], metrics[class_name]['obj_precision'], metrics[class_name]['obj_recall']))
+            print(f'\t {class_name}: \tAcc: {metrics[class_name]["accuracy"]:.4f}, \tIoU: {metrics[class_name]["iou"]:.4f}, \
+                 \tPrecision: {metrics[class_name]["precision"]:.4f}, \tRecall: {metrics[class_name]["recall"]:.4f},  \
+                 \n\tObject Precision: {metrics[class_name]["obj_precision"]:.4f}, \tObject Recall: {metrics[class_name]["obj_recall"]:.4f}, \
+                 \n\tF1-Score: {metrics[class_name]["f1-score"]:.4f}, \tObject F1-Score: {metrics[class_name]["obj_f1-score"]:.4f}')
             with open(self.out_file, 'a') as out:
                 out.write('\t {}: \tAcc: {:.4f}, \tIoU: {:.4f}, \tRecall: {:.4f}, \tPrecision: {:.4f}, \tDice: {:.4f}, \tObject Precision: {:.4f}, \tObject Recall: {:.4f}\n'.format(class_name, metrics[class_name]['accuracy'], metrics[class_name]['iou'], metrics[class_name]['recall'], metrics[class_name]['precision'], metrics[class_name]['dice'], metrics[class_name]['obj_precision'], metrics[class_name]['obj_recall']))
 

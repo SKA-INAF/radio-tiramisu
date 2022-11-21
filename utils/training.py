@@ -112,6 +112,12 @@ def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
 
     for class_name in classes[1:]:
         trn_metrics[class_name] = {metric_name: np.mean(batch_metrics[class_name][metric_name]) for metric_name in metric_names}
+        trn_metrics[class_name]['f1-score'] = \
+            (2 * trn_metrics[class_name]['precision'] * trn_metrics[class_name]['recall']) / \
+                (trn_metrics[class_name]['precision'] + trn_metrics[class_name]['recall'])
+        trn_metrics[class_name]['obj_f1-score'] = \
+            (2 * trn_metrics[class_name]['obj_precision'] * trn_metrics[class_name]['obj_recall']) / \
+                (trn_metrics[class_name]['obj_precision'] + trn_metrics[class_name]['obj_recall'])
     
     return trn_loss, trn_metrics
 
@@ -160,6 +166,7 @@ def test(model, test_loader, criterion, epoch=1, device='cuda'):
         test_metrics[class_name]['obj_f1-score'] = \
             (2 * test_metrics[class_name]['obj_precision'] * test_metrics[class_name]['obj_recall']) / \
                 (test_metrics[class_name]['obj_precision'] + test_metrics[class_name]['obj_recall'])
+                
     return test_loss, test_metrics
 
 def adjust_learning_rate(lr, decay, optimizer, cur_epoch, n_epochs):

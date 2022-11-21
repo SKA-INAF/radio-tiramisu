@@ -23,7 +23,7 @@ def get_args():
     parser.add_argument( "--lr_decay", type=float, default=0.995)
     parser.add_argument( "--weight_decay", type=float, default=1e-4)
     parser.add_argument( "--decay_every_n_epochs", type=int, default=1)
-    parser.add_argument( "--n_epochs", type=int, default=1000)
+    parser.add_argument( "--n_epochs", type=int, default=300)
     parser.add_argument( "--n_classes", type=int, default=4)
     parser.add_argument( "--device", default="cuda")
     parser.add_argument( "--test", action="store_true")

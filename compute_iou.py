@@ -1,24 +1,14 @@
-
-# coding: utf-8
-
-# ## Dependencies
-
-from datasets.rg_data import AstroDataLoaders
 from pathlib import Path
-from utils.logging import Logger
 import torch
-import torch.nn as nn
-import time
-from torch.utils.tensorboard import SummaryWriter
-
+from tqdm import tqdm
+from torchvision.utils import save_image
 import argparse
 from torchsummary import summary
 from models import tiramisu
-from datasets import rg_data
 import utils.training as train_utils
-from datasets.rg_masks import SyntheticRGDataset, CLASSES
+from datasets.rg_masks import CLASSES, RGDataset
 import datetime
-
+from torchmetrics import IoU, Accuracy
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -37,44 +27,49 @@ def main(args):
 
     DATA_PATH = Path(args.data_dir)
     RESULTS_PATH = Path(args.results_dir) / datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")
-    # WEIGHTS_PATH = Path(args.weights_dir)
 
     RESULTS_PATH.mkdir(exist_ok=True, parents=True)
-    # WEIGHTS_PATH.mkdir(exist_ok=True)
     batch_size = args.batch_size
-    class_weight = torch.FloatTensor([0.25, 2.85, 0.30, 1.50])
 
-
-    # data_loader = AstroDataLoaders(DATA_PATH, batch_size)
-    # test_loader = data_loader.get_test_loader()
-
-    test_dset = SyntheticRGDataset(DATA_PATH, "data/rg-dataset/val_mask.txt")
+    test_dset = RGDataset(DATA_PATH, "data/rg-dataset/val_mask.txt")
 
     test_loader = torch.utils.data.DataLoader(
-            test_dset, batch_size=batch_size, shuffle=False)
+            test_dset, batch_size=batch_size, shuffle=False, num_workers=4)
     if args.device == 'cuda':
         torch.cuda.manual_seed(0)
 
-    writer = SummaryWriter()
-    logger = Logger(args.log_file, CLASSES, writer)
-
     model = tiramisu.FCDenseNet67(n_classes=args.n_classes).to(args.device)
-    criterion = nn.NLLLoss(weight=class_weight.cuda()).cuda()
 
     summary(model, input_size=(3,132,132))
 
     train_utils.load_weights(model, args.resume)
-    since = time.time()
-    test_loss, test_metrics = train_utils.test(model, test_loader, criterion, epoch=1)  
+    model.eval()
 
-    time_elapsed = time.time() - since
-    logger.log_metrics('Test', 1, test_loss, test_metrics, time_elapsed)
-    # logger.wandb_plot_metrics(test_metrics, 'test')
+    iou = IoU(num_classes=4).to(args.device)
+    acc = 0
+
+    for batch in tqdm(test_loader, desc="Testing"):
+        data, target = batch
+        data = data.to(args.device)
+        targets = target.to(args.device)
+        with torch.no_grad():
+            output = model(data)
+        preds = train_utils.get_predictions(output)
+        preds = preds.to(args.device)
+        iou.update(preds, targets)
+
+        preds[preds == 0] = -1
+        batch_acc = (preds == targets).sum() / (targets != 0).sum()
+        acc += batch_acc
+
+
+    print(f'IoU: {iou.compute()}')
+    print(f'Accuracy: {acc / len(test_loader)}')
     
     train_utils.view_sample_predictions(model, test_loader, 1, 100, None)
 
 
 if __name__ == '__main__':
     args = get_args().parse_args()
-    args.resume = "weights/latest.pth"
+    args.resume = "weights/synthetic.pth"
     main(args)

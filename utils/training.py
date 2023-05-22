@@ -9,8 +9,11 @@ from torchvision.utils import save_image
 import torch.nn.functional as F
 import cv2
 from utils import imgs as img_utils
+from datasets.rg_masks import CLASSES
 
-classes = ['Void', 'Sidelobe', 'Source', 'Galaxy']
+
+
+# classes = ['Void', 'Sidelobe', 'Source', 'Galaxy']
 
 
 RESULTS_PATH = '.results/'
@@ -65,8 +68,8 @@ def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
     model.train()
     trn_loss = 0
 
-    trn_metrics = {class_name: {metric_name: 0. for metric_name in metric_names} for class_name in classes}
-    batch_metrics = {class_name: {metric_name: [] for metric_name in metric_names} for class_name in classes}
+    trn_metrics = {class_name: {metric_name: 0. for metric_name in metric_names} for class_name in CLASSES}
+    batch_metrics = {class_name: {metric_name: [] for metric_name in metric_names} for class_name in CLASSES}
 
     for data in tqdm(trn_loader, desc="Training"):
 
@@ -84,7 +87,7 @@ def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
         preds = get_predictions(output)
 
         # Skipping Background class in metric computation (i + 1)
-        for i, class_name in enumerate(classes[1:]): 
+        for i, class_name in enumerate(CLASSES[1:]): 
             union = compute_union(preds, targets.data.cpu(), i + 1) 
             if union == 0:
                 # There is no object with that class, skipping...
@@ -110,7 +113,7 @@ def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
 
     trn_loss /= len(trn_loader)
 
-    for class_name in classes[1:]:
+    for class_name in CLASSES[1:]:
         trn_metrics[class_name] = {metric_name: np.mean(batch_metrics[class_name][metric_name]) for metric_name in metric_names}
         trn_metrics[class_name]['f1-score'] = \
             (2 * trn_metrics[class_name]['precision'] * trn_metrics[class_name]['recall']) / \
@@ -124,19 +127,26 @@ def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
 def test(model, test_loader, criterion, epoch=1, device='cuda'):
     model.eval()
     test_loss = 0
-    test_metrics = {class_name: {metric_name: 0. for metric_name in metric_names} for class_name in classes}
-    batch_metrics = {class_name: {metric_name: [] for metric_name in metric_names} for class_name in classes}
+    total_metrics = {metric_name: 0. for metric_name in metric_names}
+    test_metrics = {class_name: {metric_name: 0. for metric_name in metric_names} for class_name in CLASSES}
+    batch_metrics = {class_name: {metric_name: [] for metric_name in metric_names} for class_name in CLASSES}
 
-    for data, target in tqdm(test_loader, desc="Testing"):
+    skipped = 0
+    for batch in tqdm(test_loader, desc="Testing"):
         with torch.no_grad():
+            data, target = batch
             data = data.to(device)
             targets = target.to(device)
             output = model(data)
-            test_loss += criterion(output, targets).item()
+            # if (target < 0).any():
+            #     skipped += 1
+            #     print(f"Skipping, count: {skipped}")
+            #     continue
+            # test_loss += criterion(output, targets).item()
             preds = get_predictions(output)
 
             # Skipping Background class in metric computation (i + 1)
-            for i, class_name in enumerate(classes[1:]): 
+            for i, class_name in enumerate(CLASSES[1:]): 
                 union = compute_union(preds, targets.data.cpu(), i + 1) 
                 if union == 0:
                     # There is no object with that class, skipping...
@@ -158,7 +168,7 @@ def test(model, test_loader, criterion, epoch=1, device='cuda'):
             
     test_loss /= len(test_loader)
 
-    for class_name in classes[1:]:
+    for class_name in CLASSES[1:]:
         test_metrics[class_name] = {metric_name: np.mean(batch_metrics[class_name][metric_name]) for metric_name in metric_names}
         test_metrics[class_name]['f1-score'] = \
             (2 * test_metrics[class_name]['precision'] * test_metrics[class_name]['recall']) / \

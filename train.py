@@ -10,11 +10,12 @@ from datasets.rg_data import AstroDataLoaders
 import utils.training as train_utils
 import wandb
 from torch.utils.tensorboard import SummaryWriter
+from datasets.rg_masks import SyntheticRGDataset, CLASSES, RGDataset
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument( "--resume", default='', type=str, help="Weights path from which start training")
-    parser.add_argument( "--data_dir", default="data", help="Path of data folder")
+    parser.add_argument( "--data_dir", default="data/rg-dataset/data", help="Path of data folder")
     parser.add_argument( "--weights_dir", default =".weights", help="Weights dir where to save checkpoints")
     parser.add_argument( "--results_dir", default =".results", help="Weights dir where to store results")
     parser.add_argument( "--log_file", default ="log.txt", help="Log text file path")
@@ -39,22 +40,33 @@ def main(args):
     RESULTS_PATH.mkdir(exist_ok=True)
     WEIGHTS_PATH.mkdir(exist_ok=True)
     batch_size = args.batch_size
+    class_weight = torch.FloatTensor([0.25, 2.85, 0.30, 1.50])
 
     # Data Loading
-    data_loader = AstroDataLoaders(DATA_PATH, batch_size)
-    train_loader = data_loader.get_train_loader()
-    val_loader = data_loader.get_val_loader()
-    test_loader = data_loader.get_test_loader()
+    # data_loader = AstroDataLoaders(DATA_PATH, batch_size)
+    # train_loader = data_loader.get_train_loader()
+    # val_loader = data_loader.get_val_loader()
+    # test_loader = data_loader.get_test_loader()
 
+    # train_dset = SyntheticRGDataset(DATA_PATH, "data/rg-dataset/synthetic_train.txt")
+    # test_dset = SyntheticRGDataset(DATA_PATH, "data/rg-dataset/synthetic_test.txt")
+    train_dset = RGDataset(DATA_PATH, "data/rg-dataset/train_mask.txt")
+    test_dset = RGDataset(DATA_PATH, "data/rg-dataset/val_mask.txt")
+
+    train_loader = torch.utils.data.DataLoader(
+            train_dset, batch_size=batch_size, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(
+            test_dset, batch_size=batch_size, shuffle=False)
+    
     # Logging
 
     writer = SummaryWriter()
 
-    logger = Logger(args.log_file, train_loader.dataset.classes, writer)
+    logger = Logger(args.log_file, CLASSES, writer)
     n_samples = {
-        'Train' : len(train_loader.dataset.imgs),
-        'Val' : len(val_loader.dataset.imgs),
-        'Test' : len(test_loader.dataset.imgs),
+        'Train' : len(train_loader.dataset),
+        'Val' : len(val_loader.dataset),
+        # 'Test' : len(test_loader.dataset),
         }
 
     inputs, targets = next(iter(train_loader))
@@ -65,7 +77,7 @@ def main(args):
     model = tiramisu.FCDenseNet67(n_classes=4).to(args.device)
     model.apply(train_utils.weights_init)
     optimizer = torch.optim.RMSprop(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    criterion = nn.NLLLoss(weight=data_loader.class_weight.to(args.device))
+    criterion = nn.NLLLoss(weight=class_weight).to(args.device)
 
 
     for epoch in range(1, args.n_epochs + 1):
@@ -89,26 +101,27 @@ def main(args):
 
         train_utils.view_sample_predictions(model, val_loader, epoch, n=5, writer=writer)
         
-        ### Checkpoint ###    
-        val_acc = np.nanmean([val_metrics[class_name]['accuracy'] for class_name in val_loader.dataset.classes])
-        train_utils.save_weights(model, epoch, val_loss, val_acc)
+        ## Checkpoint ###    
+        val_acc = np.nanmean([val_metrics[class_name]['accuracy'] for class_name in CLASSES])
+        if (epoch + 1) % 100 == 0:
+            train_utils.save_weights(model, epoch, val_loss, val_acc)
 
         ### Adjust Lr ###
         train_utils.adjust_learning_rate(args.lr, args.lr_decay, optimizer, epoch, args.decay_every_n_epochs)
 
     # ## Test
 
-    if args.test:
-        train_utils.load_weights(model, str(WEIGHTS_PATH)+args.resume)
-        test_loss, test_metrics = train_utils.test(model, test_loader, criterion, epoch=1)  
+    # if args.test:
+        # train_utils.load_weights(model, str(WEIGHTS_PATH)+args.resume)
+        # test_loss, test_metrics = train_utils.test(model, test_loader, criterion, epoch=1)  
 
-        since = time.time()
+        # since = time.time()
 
-        time_elapsed = time.time() - since
-        logger.log_metrics('Test', epoch, test_loss, test_metrics, time_elapsed)
-        logger.wandb_plot_metrics(test_metrics, 'test')
+        # time_elapsed = time.time() - since
+        # logger.log_metrics('Test', epoch, test_loss, test_metrics, time_elapsed)
+        # logger.wandb_plot_metrics(test_metrics, 'test')
 
-        train_utils.view_sample_predictions(model, test_loader, 1, 100, None)
+        # train_utils.view_sample_predictions(model, test_loader, 1, 100, None)
 
 if __name__ == '__main__':
     args = get_args().parse_args()

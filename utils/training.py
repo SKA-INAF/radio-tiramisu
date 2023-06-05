@@ -23,9 +23,9 @@ metric_values = ['union', 'tp', 'fp', 'fn', 'obj_tp', 'obj_fp', 'obj_fn']
 metric_names = ['accuracy', 'iou', 'precision', 'recall', 'dice', 'obj_precision', 'obj_recall']
 
 
-def save_weights(model, epoch, loss, acc): #err):
+def save_weights(model, epoch, loss, acc, weights_path="weights"): #err):
     weights_fname = 'weights-%d-%.3f-%.3f.pth' % (epoch, loss, acc)
-    weights_fpath = os.path.join(WEIGHTS_PATH, weights_fname)
+    weights_fpath = os.path.join(weights_path, weights_fname)
     torch.save({
             'startEpoch': epoch,
             'loss':loss,

@@ -40,6 +40,12 @@ class LabelToLongTensor(object):
             label = label.transpose(0, 1).transpose(0, 2).squeeze().contiguous().long()
         return label
 
+class LabelToBinaryMask(object):
+    def __call__(self, pic):   
+        label = transforms.functional.to_tensor(pic)
+        label = torch.where(label != 0, 1, 0)
+        return label
+
 
 class LabelTensorToPILImage(object):
     def __call__(self, label):

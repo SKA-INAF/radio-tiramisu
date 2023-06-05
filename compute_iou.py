@@ -1,14 +1,12 @@
 from pathlib import Path
 import torch
 from tqdm import tqdm
-from torchvision.utils import save_image
 import argparse
-from torchsummary import summary
 from models import tiramisu
 import utils.training as train_utils
 from datasets.rg_masks import CLASSES, RGDataset
 import datetime
-from torchmetrics import IoU, Accuracy
+from torchmetrics import JaccardIndex as IoU
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -40,12 +38,12 @@ def main(args):
 
     model = tiramisu.FCDenseNet67(n_classes=args.n_classes).to(args.device)
 
-    summary(model, input_size=(3,132,132))
+    # summary(model, input_size=(3,132,132))
 
     train_utils.load_weights(model, args.resume)
     model.eval()
 
-    iou = IoU(num_classes=4).to(args.device)
+    iou = IoU(task="multiclass", num_classes=4).to(args.device)
     acc = 0
 
     for batch in tqdm(test_loader, desc="Testing"):
@@ -71,5 +69,5 @@ def main(args):
 
 if __name__ == '__main__':
     args = get_args().parse_args()
-    args.resume = "weights/synthetic.pth"
+    args.resume = "weights/augmented-masks.pth"
     main(args)

@@ -29,26 +29,6 @@ warnings.simplefilter('ignore', category=VerifyWarning)
 CLASSES = ['background', 'spurious', 'compact', 'extended']
 COLORS = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
-
-def get_mask(img_path, type):
-    if type == ""
-    ann_path = str(image_path).replace(
-        'imgs', 'masks').replace('.fits', '.json')
-    ann_dir = Path(ann_path).parent
-    ann_path = ann_dir / f'mask_{ann_path.split("/")[-1]}'
-    with open(ann_path) as j:
-        mask_info = json.load(j)
-
-    masks = []
-
-    for obj in mask_info['objs']:
-        seg_path = ann_dir / obj['mask']
-
-        mask = fits.getdata(seg_path)
-
-        mask = self.mask_transforms(mask.astype(np.float32))
-        masks.append(mask)
-
 class RemoveNaNs(object):
     def __init__(self):
         pass
@@ -108,7 +88,7 @@ class FromNumpy(object):
         pass
 
     def __call__(self, img):
-        return torch.from_numpy(img).type(torch.float32)
+        return torch.from_numpy(img.astype(np.float32)).type(torch.float32)
 
 class Unsqueeze(object):
     def __init__(self):
@@ -134,6 +114,14 @@ def get_data_loader(dataset, batch_size, split="train"):
                       num_workers=workers, persistent_workers=True,
                       drop_last=is_train
                       )
+
+def rgb_to_tensor(mask):
+    r,g,b = mask
+    r *= 1
+    g *= 2
+    b *= 3
+    mask, _ = torch.max(torch.stack([r,g,b]), dim=0, keepdim=True)
+    return mask
 
 
 def rand_horizontal_flip(img, mask):
@@ -174,6 +162,37 @@ class RGDataset(Dataset):
                      interpolation=T.InterpolationMode.NEAREST),
         ])
 
+    def get_mask(self, img_path, type):
+        assert type in ["real", "synthetic"], f"Type {type} not supported"
+        if type == "real":
+            ann_path = str(img_path).replace(
+                'imgs', 'masks').replace('.fits', '.json')
+            ann_dir = Path(ann_path).parent
+            ann_path = ann_dir / f'mask_{ann_path.split("/")[-1]}'
+            with open(ann_path) as j:
+                mask_info = json.load(j)
+
+            masks = []
+
+            for obj in mask_info['objs']:
+                seg_path = ann_dir / obj['mask']
+
+                mask = fits.getdata(seg_path)
+
+                mask = self.mask_transforms(mask.astype(np.float32))
+                masks.append(mask)
+            mask, _ = torch.max(torch.stack(masks), dim=0)
+
+        elif type == "synthetic":
+            mask_path = str(img_path).replace("gen_fits", "cond_fits")
+            mask = fits.getdata(mask_path)
+            mask = self.mask_transforms(mask)
+            mask = mask.squeeze()
+            if mask.shape[0] == 3:
+                mask = rgb_to_tensor(mask)
+        return mask
+
+
     def __len__(self):
         return len(self.img_paths)
 
@@ -181,30 +200,35 @@ class RGDataset(Dataset):
         image_path = self.img_paths[idx]
         img = fits.getdata(image_path)
         img = self.transforms(img)
+        
+        if "synthetic" in str(image_path):
+            mask = self.get_mask(image_path, type='synthetic')
+        else:
+            mask = self.get_mask(image_path, type='real')
 
-        ann_path = str(image_path).replace(
-            'imgs', 'masks').replace('.fits', '.json')
-        ann_dir = Path(ann_path).parent
-        ann_path = ann_dir / f'mask_{ann_path.split("/")[-1]}'
-        with open(ann_path) as j:
-            mask_info = json.load(j)
+        # ann_path = str(image_path).replace(
+        #     'imgs', 'masks').replace('.fits', '.json')
+        # ann_dir = Path(ann_path).parent
+        # ann_path = ann_dir / f'mask_{ann_path.split("/")[-1]}'
+        # with open(ann_path) as j:
+        #     mask_info = json.load(j)
 
 
-        masks = []
+        # masks = []
 
-        for obj in mask_info['objs']:
-            seg_path = ann_dir / obj['mask']
+        # for obj in mask_info['objs']:
+        #     seg_path = ann_dir / obj['mask']
 
-            mask = fits.getdata(seg_path)
+        #     mask = fits.getdata(seg_path)
 
-            mask = self.mask_transforms(mask.astype(np.float32))
-            masks.append(mask)
+        #     mask = self.mask_transforms(mask.astype(np.float32))
+            # masks.append(mask)
 
         # if 'bkg' in str(image_path):
         #     mask = torch.zeros_like(img)
         #     masks.append(mask)
 
-        mask, _ = torch.max(torch.stack(masks), dim=0)
+        # mask, _ = torch.max(torch.stack(masks), dim=0)
         mask = mask.long()
         return img.squeeze(), mask.squeeze()
 
@@ -262,8 +286,6 @@ class SyntheticRGDataset(Dataset):
 
 
 if __name__ == '__main__':
-    import sys
-    sys.path.append('/home/rsortino/inaf/radio-diffusion')
     rgtrain = SyntheticRGDataset('data/rg-dataset/data',
                         'data/rg-dataset/val_w_bg.txt')
     batch = next(iter(rgtrain))

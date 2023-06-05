@@ -3,13 +3,13 @@ import wandb
 import datetime
 
 class Logger:
-    def __init__(self, out_file, classes, writer):
+    def __init__(self, out_file, classes, writer, run_name="Placeholder"):
         self.out_file = out_file
         self.classes = classes[1:]
         self.writer = writer
         self.metric_names = ['accuracy', 'iou', 'precision', 'recall', 'dice', 'obj_precision', 'obj_recall']
 
-        wandb.init(project='astro_tiramisu')
+        wandb.init(project='astro_tiramisu', name=run_name)
         with open(out_file, 'w') as out:
             out.write('Date: ' + str(datetime.datetime.now()) + '\n')
 

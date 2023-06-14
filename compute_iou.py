@@ -41,8 +41,8 @@ def main(args):
     model.eval()
 
     iou_all = IoU(task="multiclass", num_classes=4).to(args.device)
-    iou_ext = IoU(task="multiclass", num_classes=4).to(args.device)
-    iou_comp = IoU(task="multiclass", num_classes=4).to(args.device)
+    iou_ext = IoU(task="binary").to(args.device)
+    iou_comp = IoU(task="binary").to(args.device)
     
     accs_all = []
     accs_ext = []
@@ -68,6 +68,9 @@ def main(args):
         targets_ext = targets.clone()
         preds_ext[preds_ext != 3] = 0
         targets_ext[targets_ext != 3] = 0
+        preds_ext = preds_ext.clip(0, 1)
+        targets_ext = targets_ext.clip(0, 1)
+
         iou_ext.update(preds_ext, targets_ext)
         preds_ext[preds_ext == 0] = -1
         if (targets_ext != 0).sum() != 0:
@@ -79,6 +82,9 @@ def main(args):
         targets_comp = targets.clone()
         preds_comp[preds_comp != 2] = 0
         targets_comp[targets_comp != 2] = 0
+        preds_comp = preds_comp.clip(0, 1)
+        targets_comp = targets_comp.clip(0, 1)
+
         iou_comp.update(preds_comp, targets_comp)
         preds_comp[preds_comp == 0] = -1
         if (targets_comp != 0).sum() != 0:
@@ -102,5 +108,5 @@ def main(args):
 
 if __name__ == '__main__':
     args = get_args().parse_args()
-    args.resume = "weights/augmented-masks.pth"
+    args.resume = "weights/real-6600.pth"
     main(args)

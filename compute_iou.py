@@ -73,9 +73,11 @@ def main(args):
 
         iou_ext.update(preds_ext, targets_ext)
         preds_ext[preds_ext == 0] = -1
-        if (targets_ext != 0).sum() != 0:
-            batch_acc = (preds_ext == targets_ext).sum() / (targets_ext != 0).sum()
-            accs_ext.append(batch_acc)
+        # if (targets_ext != 0).sum() != 0:
+        #     batch_acc = (preds_ext == targets_ext).sum() / (targets_ext != 0).sum()
+        #     accs_ext.append(batch_acc)
+        batch_acc = (preds_ext == targets_ext).sum() / (targets_ext != 0).sum() if (targets_ext != 0).sum() != 0 else 1
+        accs_ext.append(batch_acc)
 
         # Compute metrics for compact class
         preds_comp = preds.clone()
@@ -87,9 +89,11 @@ def main(args):
 
         iou_comp.update(preds_comp, targets_comp)
         preds_comp[preds_comp == 0] = -1
-        if (targets_comp != 0).sum() != 0:
-            batch_acc = (preds_comp == targets_comp).sum() / (targets_comp != 0).sum()
-            accs_comp.append(batch_acc)
+        # if (targets_comp != 0).sum() != 0:
+        #     batch_acc = (preds_comp == targets_comp).sum() / (targets_comp != 0).sum()
+        #     accs_comp.append(batch_acc)
+        batch_acc = (preds_comp == targets_comp).sum() / (targets_comp != 0).sum() if (targets_comp != 0).sum() != 0 else 1
+        accs_comp.append(batch_acc)
 
 
     print("All classes")
@@ -108,5 +112,5 @@ def main(args):
 
 if __name__ == '__main__':
     args = get_args().parse_args()
-    args.resume = "weights/real-6600.pth"
+    args.resume = "weights/augmentation/augmented-compact.pth"
     main(args)

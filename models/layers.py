@@ -26,17 +26,17 @@ class DenseBlock(nn.Module):
     def forward(self, x):
         if self.upsample:
             new_features = []
-            #we pass all previous activations into each dense layer normally
-            #But we only store each dense layer's output in the new_features array
+            # we pass all previous activations into each dense layer normally
+            # But we only store each dense layer's output in the new_features array
             for layer in self.layers:
                 out = layer(x)
                 x = torch.cat([x, out], 1)
                 new_features.append(out)
-            return torch.cat(new_features,1)
+            return torch.cat(new_features, 1)
         else:
             for layer in self.layers:
                 out = layer(x)
-                x = torch.cat([x, out], 1) # 1 = channel axis
+                x = torch.cat([x, out], 1)  # 1 = channel axis
             return x
 
 

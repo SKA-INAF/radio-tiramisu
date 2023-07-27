@@ -6,7 +6,6 @@ import torch.nn as nn
 import numpy as np
 import time
 from models import tiramisu
-from datasets.rg_data import AstroDataLoaders
 import utils.training as train_utils
 import wandb
 from torch.utils.tensorboard import SummaryWriter
@@ -43,11 +42,6 @@ def main(args):
     class_weight = torch.FloatTensor([0.25, 2.85, 0.30, 1.50])
 
     # Data Loading
-    # data_loader = AstroDataLoaders(DATA_PATH, batch_size)
-    # train_loader = data_loader.get_train_loader()
-    # val_loader = data_loader.get_val_loader()
-    # test_loader = data_loader.get_test_loader()
-
     # train_dset = SyntheticRGDataset(DATA_PATH, "data/rg-dataset/synthetic_train.txt")
     # test_dset = SyntheticRGDataset(DATA_PATH, "data/rg-dataset/synthetic_test.txt")
     train_dset = RGDataset(DATA_PATH, "data/rg-dataset/train_mask.txt")
@@ -108,20 +102,6 @@ def main(args):
 
         ### Adjust Lr ###
         train_utils.adjust_learning_rate(args.lr, args.lr_decay, optimizer, epoch, args.decay_every_n_epochs)
-
-    # ## Test
-
-    # if args.test:
-        # train_utils.load_weights(model, str(WEIGHTS_PATH)+args.resume)
-        # test_loss, test_metrics = train_utils.test(model, test_loader, criterion, epoch=1)  
-
-        # since = time.time()
-
-        # time_elapsed = time.time() - since
-        # logger.log_metrics('Test', epoch, test_loss, test_metrics, time_elapsed)
-        # logger.wandb_plot_metrics(test_metrics, 'test')
-
-        # train_utils.view_sample_predictions(model, test_loader, 1, 100, None)
 
 if __name__ == '__main__':
     args = get_args().parse_args()

@@ -32,6 +32,20 @@ warnings.simplefilter('ignore', category=VerifyWarning)
 CLASSES = ['background', 'spurious', 'compact', 'extended']
 COLORS = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
+
+def get_transforms(img_size):
+    return  T.Compose([
+                RemoveNaNs(),
+                ZScale(),
+                SigmaClip(),
+                ToTensor(),
+                torch.nn.Tanh(),
+                MinMaxNormalize(),
+                Unsqueeze(),
+                T.Resize((img_size, img_size)),
+                RepeatChannels((3))
+            ])
+
 class RemoveNaNs(object):
     def __init__(self):
         pass

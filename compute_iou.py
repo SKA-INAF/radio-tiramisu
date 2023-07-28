@@ -63,7 +63,7 @@ def main(args):
         targets = target.to(args.device)
         with torch.no_grad():
             output = model(data)
-        preds = train_utils.get_predictions(output)
+        preds = output.argmax(1)
         preds = preds.to(args.device)
 
         # Compute metrics for all classes

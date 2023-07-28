@@ -31,7 +31,7 @@ def save_weights(model, epoch, loss, acc, weights_path="weights"):
 
 def load_weights(model, fpath, device="cuda"):
     print("loading weights '{}'".format(fpath))
-    weights = torch.load(fpath, map_device=torch.device(device))
+    weights = torch.load(fpath, map_location=torch.device(device))
     startEpoch = weights['startEpoch']
     model.load_state_dict(weights['state_dict'])
     print("loaded weights (lastEpoch {}, loss {}, error {})"

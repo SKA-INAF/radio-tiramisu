@@ -6,7 +6,10 @@ Semantic segmentation of radio maps with the [Tiramisu](https://github.com/0bser
 
 [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-sm-dark.svg)](https://huggingface.co/spaces/rsortino/radio-tiramisu)
 [![Paper](http://img.shields.io/badge/Paper-Link-red)](https://link.springer.com/chapter/10.1007/978-3-030-89691-1_38)
+<div align=center><img width="700" alt="image" src="docs/thumbnail.png"></div>
 
+<div align="left">    
+ 
 ## Usage
 
 ### Training

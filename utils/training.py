@@ -1,19 +1,14 @@
 import os
 from utils.metrics import *
+from utils.obj_metrics import *
 import shutil
 import numpy as np
 from tqdm import tqdm
 import torch
 import torch.nn as nn
 from torchvision.utils import save_image
-import torch.nn.functional as F
-import cv2
 from utils import imgs as img_utils
 from datasets.rg_masks import CLASSES
-
-
-
-# classes = ['Void', 'Sidelobe', 'Source', 'Galaxy']
 
 
 RESULTS_PATH = '.results/'
@@ -23,13 +18,12 @@ metric_values = ['union', 'tp', 'fp', 'fn', 'obj_tp', 'obj_fp', 'obj_fn']
 metric_names = ['accuracy', 'iou', 'precision', 'recall', 'dice', 'obj_precision', 'obj_recall']
 
 
-def save_weights(model, epoch, loss, acc, weights_path="weights"): #err):
+def save_weights(model, epoch, loss, acc, weights_path="weights"):
     weights_fname = 'weights-%d-%.3f-%.3f.pth' % (epoch, loss, acc)
     weights_fpath = os.path.join(weights_path, weights_fname)
     torch.save({
             'startEpoch': epoch,
             'loss':loss,
-            #'error': err,
             'accuracy': acc,
             'state_dict': model.state_dict()
         }, weights_fpath)
@@ -37,31 +31,12 @@ def save_weights(model, epoch, loss, acc, weights_path="weights"): #err):
 
 def load_weights(model, fpath, device="cuda"):
     print("loading weights '{}'".format(fpath))
-    if device == 'cpu':
-        weights = torch.load(fpath, map_location=torch.device('cpu'))
-    else:
-        weights = torch.load(fpath)
+    weights = torch.load(fpath, map_location=torch.device(device))
     startEpoch = weights['startEpoch']
     model.load_state_dict(weights['state_dict'])
     print("loaded weights (lastEpoch {}, loss {}, error {})"
           .format(startEpoch-1, weights['loss'], weights['accuracy']))
     return startEpoch
-
-def get_predictions(output_batch):
-    bs,c,h,w = output_batch.size()
-    tensor = output_batch.data
-    values, indices = tensor.cpu().max(1)
-    indices = indices.view(bs,h,w)
-    return indices
-
-def error(preds, targets):
-    assert preds.size() == targets.size()
-    bs,h,w = preds.size()
-    n_pixels = bs*h*w
-
-    incorrect = preds.ne(targets).cpu().sum()
-    err = incorrect/n_pixels
-    return round(float(err),5)
 
 
 def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
@@ -84,17 +59,17 @@ def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
         optimizer.step()
 
         trn_loss += loss.data.item()
-        preds = get_predictions(output)
+        preds = output.argmax(1)
 
         # Skipping Background class in metric computation (i + 1)
-        for i, class_name in enumerate(CLASSES[1:]): 
-            union = compute_union(preds, targets.data.cpu(), i + 1) 
+        for i, class_name in enumerate(CLASSES[1:]):
+            union = compute_union(preds, targets.data, i + 1)
             if union == 0:
                 # There is no object with that class, skipping...
                 continue
 
-            tp, fp, fn, tn = compute_confusion_matrix(preds, targets.data.cpu(), i + 1)
-            obj_tp, obj_fp, obj_fn = compute_object_confusion_matrix(preds, targets.data.cpu(), i + 1)
+            tp, fp, fn, tn = compute_confusion_matrix(preds, targets.data, i + 1)
+            obj_tp, obj_fp, obj_fn = compute_object_confusion_matrix(preds, targets.data, i + 1)
 
             accuracy, iou, precision, recall, dice = compute_batch_metrics(union, tp, fp, fn, tn)
             obj_precision, obj_recall = compute_batch_obj_metrics(obj_tp, obj_fp, obj_fn)
@@ -106,10 +81,6 @@ def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
             batch_metrics[class_name]['dice'].append(dice)
             batch_metrics[class_name]['obj_precision'].append(obj_precision)
             batch_metrics[class_name]['obj_recall'].append(obj_recall)
-
-            # batch_metrics = {class_name: compute_final_metrics(batch_metrics[class_name]) for class_name in classes}
-            # for metric_val in metric_values:
-            #     trn_metrics[class_name][metric_val] += tmp_values[metric_val][class_name]
 
     trn_loss /= len(trn_loader)
 
@@ -127,33 +98,26 @@ def train(model, trn_loader, optimizer, criterion, epoch, device='cuda'):
 def test(model, test_loader, criterion, epoch=1, device='cuda'):
     model.eval()
     test_loss = 0
-    total_metrics = {metric_name: 0. for metric_name in metric_names}
     test_metrics = {class_name: {metric_name: 0. for metric_name in metric_names} for class_name in CLASSES}
     batch_metrics = {class_name: {metric_name: [] for metric_name in metric_names} for class_name in CLASSES}
 
-    skipped = 0
     for batch in tqdm(test_loader, desc="Testing"):
         with torch.no_grad():
             data, target = batch
             data = data.to(device)
             targets = target.to(device)
             output = model(data)
-            # if (target < 0).any():
-            #     skipped += 1
-            #     print(f"Skipping, count: {skipped}")
-            #     continue
-            # test_loss += criterion(output, targets).item()
-            preds = get_predictions(output)
+            preds = output.argmax(1)
 
             # Skipping Background class in metric computation (i + 1)
             for i, class_name in enumerate(CLASSES[1:]): 
-                union = compute_union(preds, targets.data.cpu(), i + 1) 
+                union = compute_union(preds, targets.data, i + 1) 
                 if union == 0:
                     # There is no object with that class, skipping...
                     continue
 
-                tp, fp, fn, tn = compute_confusion_matrix(preds, targets.data.cpu(), i + 1)
-                obj_tp, obj_fp, obj_fn = compute_object_confusion_matrix(preds, targets.data.cpu(), i + 1)
+                tp, fp, fn, tn = compute_confusion_matrix(preds, targets.data, i + 1)
+                obj_tp, obj_fp, obj_fn = compute_object_confusion_matrix(preds, targets.data, i + 1)
 
                 accuracy, iou, precision, recall, dice = compute_batch_metrics(union, tp, fp, fn, tn)
                 obj_precision, obj_recall = compute_batch_obj_metrics(obj_tp, obj_fp, obj_fn)
@@ -191,24 +155,12 @@ def weights_init(m):
         nn.init.kaiming_uniform_(m.weight)
         m.bias.data.zero_()
 
-def predict(model, input_loader, n_batches=1, device="cuda"):
-    input_loader.batch_size = 1
-    predictions = []
-    model.eval()
-    for data, target in input_loader:
-        data = data.to(device)
-        target = target.to(device)
-        output = model(data)
-        pred = get_predictions(output)
-        predictions.append([data, target, pred])
-    return predictions
-
 def view_sample_predictions(model, loader, epoch, n, writer, device='cuda'):
     inputs, targets = next(iter(loader))
     data = inputs.to(device)
     label = targets.to(device)
     output = model(data)
-    pred = get_predictions(output)
+    pred = output.argmax(1)
     batch_size = inputs.size(0)
     imgs_to_save = []
     output_path=".\output"
@@ -223,25 +175,11 @@ def save_predictions(im, targ, pred, epoch, idx, writer):
     targ = torch.tensor(targ).permute(2,0,1)
     pred = torch.tensor(pred).permute(2,0,1)    
     imgs_to_save = []
-    imgs_to_save.append(im.cpu())
-    t = targ.cpu()
+    imgs_to_save.append(im)
+    t = targ
     imgs_to_save.append(t)
-    np_pred = pred.cpu()
+    np_pred = pred
     imgs_to_save.append(np_pred)
     imgs_fname = 'output-'+str(epoch)+'_'+str(idx)+'.png'
-    # writer.add_image(imgs_fname, imgs_to_save)
     imgs_fpath = os.path.join(str(RESULTS_PATH), imgs_fname)
     save_image(imgs_to_save, imgs_fpath)
-
-def save_mask(loader):   
-    i=0 
-    for im, target in iter(loader):
-        for t in target:
-            
-            imgs_fname = loader.dataset.imgs[i].split("\\")[2]
-            imgs_fpath = os.path.join("./mask_train", imgs_fname)
-            t= img_utils.view_annotated(t,False)
-            targ = torch.tensor(t).permute(2,0,1)
-            save_image(targ.cpu(), imgs_fpath)
-            i=i+1
-        

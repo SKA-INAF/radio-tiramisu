@@ -1,33 +1,50 @@
 import json
+import math
 import random
 import warnings
-import math
 from pathlib import Path
 
 import numpy as np
-from torchvision.utils import make_grid, save_image
 import torch
 import torch.nn.functional as F
-from torch.utils.data import Dataset
 import torch.utils.data
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 from astropy.io import fits
 from astropy.io.fits.verify import VerifyWarning
 from einops import rearrange
+from torch.utils.data import Dataset
 from torchvision.transforms.functional import to_pil_image
+from torchvision.utils import make_grid, save_image
+
 warnings.simplefilter('ignore', category=VerifyWarning)
+import warnings
+
+import numpy as np
 import torch
 from astropy.stats import sigma_clip
 from astropy.visualization import ZScaleInterval
-import numpy as np
 from torch.utils.data import DataLoader
-import warnings
+
 warnings.simplefilter('ignore', category=VerifyWarning)
 
 
 CLASSES = ['background', 'spurious', 'compact', 'extended']
 COLORS = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+
+def get_transforms(img_size):
+    return  T.Compose([
+                RemoveNaNs(),
+                ZScale(),
+                SigmaClip(),
+                ToTensor(),
+                torch.nn.Tanh(),
+                MinMaxNormalize(),
+                Unsqueeze(),
+                T.Resize((img_size, img_size)),
+                RepeatChannels((3))
+            ])
 
 class RemoveNaNs(object):
     def __init__(self):

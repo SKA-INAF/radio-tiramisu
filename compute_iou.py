@@ -1,29 +1,38 @@
-from pathlib import Path
-import torch
-from tqdm import tqdm
 import argparse
-from models import tiramisu
-import utils.training as train_utils
-from datasets.rg_masks import CLASSES, RGDataset
 import datetime
+from pathlib import Path
+
+import torch
 from torchmetrics import JaccardIndex as IoU
+from tqdm import tqdm
+
+import utils.training as train_utils
+from datasets.rg_masks import RGDataset
+from models import tiramisu
+
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument( "--resume", default='latest.th', type=str, help="Weights path from which start training")
-    parser.add_argument( "--data_dir", default="data/rg-dataset/data", help="Path of data folder")
-    parser.add_argument( "--results_dir", default =".results", help="Weights dir where to store results")
-    parser.add_argument( "--log_file", default ="log.txt", help="Log text file path")
-    parser.add_argument( "--batch_size", default=20)
-    parser.add_argument( "--n_classes", default=4)
-    parser.add_argument( "--device", default="cuda")
+    parser.add_argument("--resume", default='latest.th',
+                        type=str, help="Weights path from which start training")
+    parser.add_argument(
+        "--data_dir", default="data/rg-dataset/data", help="Path of data folder")
+    parser.add_argument("--results_dir", default=".results",
+                        help="Weights dir where to store results")
+    parser.add_argument("--log_file", default="log.txt",
+                        help="Log text file path")
+    parser.add_argument("--batch_size", default=20)
+    parser.add_argument("--n_classes", default=4)
+    parser.add_argument("--device", default="cuda")
 
     return parser
+
 
 def main(args):
 
     DATA_PATH = Path(args.data_dir)
-    RESULTS_PATH = Path(args.results_dir) / datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")
+    RESULTS_PATH = Path(args.results_dir) / \
+        datetime.datetime.now().strftime("%Y-%m-%d_%H:%M")
 
     RESULTS_PATH.mkdir(exist_ok=True, parents=True)
     batch_size = args.batch_size
@@ -31,7 +40,7 @@ def main(args):
     test_dset = RGDataset(DATA_PATH, "data/rg-dataset/val_mask.txt")
 
     test_loader = torch.utils.data.DataLoader(
-            test_dset, batch_size=batch_size, shuffle=False, num_workers=4)
+        test_dset, batch_size=batch_size, shuffle=False, num_workers=4)
     if args.device == 'cuda':
         torch.cuda.manual_seed(0)
 
@@ -43,7 +52,7 @@ def main(args):
     iou_all = IoU(task="multiclass", num_classes=4).to(args.device)
     iou_ext = IoU(task="binary").to(args.device)
     iou_comp = IoU(task="binary").to(args.device)
-    
+
     accs_all = []
     accs_ext = []
     accs_comp = []
@@ -54,7 +63,7 @@ def main(args):
         targets = target.to(args.device)
         with torch.no_grad():
             output = model(data)
-        preds = train_utils.get_predictions(output)
+        preds = output.argmax(1)
         preds = preds.to(args.device)
 
         # Compute metrics for all classes
@@ -73,10 +82,8 @@ def main(args):
 
         iou_ext.update(preds_ext, targets_ext)
         preds_ext[preds_ext == 0] = -1
-        # if (targets_ext != 0).sum() != 0:
-        #     batch_acc = (preds_ext == targets_ext).sum() / (targets_ext != 0).sum()
-        #     accs_ext.append(batch_acc)
-        batch_acc = (preds_ext == targets_ext).sum() / (targets_ext != 0).sum() if (targets_ext != 0).sum() != 0 else 1
+        batch_acc = (preds_ext == targets_ext).sum() / (targets_ext !=
+                                                        0).sum() if (targets_ext != 0).sum() != 0 else 1
         accs_ext.append(batch_acc)
 
         # Compute metrics for compact class
@@ -92,9 +99,9 @@ def main(args):
         # if (targets_comp != 0).sum() != 0:
         #     batch_acc = (preds_comp == targets_comp).sum() / (targets_comp != 0).sum()
         #     accs_comp.append(batch_acc)
-        batch_acc = (preds_comp == targets_comp).sum() / (targets_comp != 0).sum() if (targets_comp != 0).sum() != 0 else 1
+        batch_acc = (preds_comp == targets_comp).sum(
+        ) / (targets_comp != 0).sum() if (targets_comp != 0).sum() != 0 else 1
         accs_comp.append(batch_acc)
-
 
     print("All classes")
     print(f'Accuracy: {sum(accs_all) / len(accs_all) * 100:.2f}')
@@ -103,7 +110,6 @@ def main(args):
     print("\nOnly Extended")
     print(f'Accuracy: {sum(accs_ext) / len(accs_ext) * 100:.2f}')
     print(f'IoU: {iou_ext.compute() * 100:.2f}')
-
 
     print("\nOnly Compact")
     print(f'Accuracy: {sum(accs_comp) / len(accs_comp) * 100:.2f}')

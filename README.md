@@ -1,7 +1,7 @@
 
 <div align="center">    
 
-<image src="docs/logo.jpeg" width="200px">
+<image src="docs/logo.png" width="200px">
 
 # Radio Tiramisu
 Semantic segmentation of radio maps with the [Tiramisu](https://github.com/0bserver07/One-Hundred-Layers-Tiramisu) model.
